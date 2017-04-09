@@ -197,7 +197,7 @@ PCRE2_comp(pTHX_ SV * const pattern, U32 flags)
         &errcode,     /* errors */
         &erroffset,   /* error offset */
 #ifdef USE_MATCH_CONTEXT
-        &compile_context
+        compile_context
 #else
         NULL
 #endif
@@ -352,8 +352,8 @@ PCRE2_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend,
     pcre2_config_8(PCRE2_CONFIG_JIT, &have_jit);
     if (have_jit) {
 #ifdef USE_MATCH_CONTEXT
-        /* no compile_context yet */
-        match_context = pcre2_match_context_create(compile_context);
+        /* general context for memory not needed */
+        match_context = pcre2_match_context_create(NULL);
         /* default MATCH_LIMIT: 10000000 - uint32_t,
            but even 5120000000 is not big enough for the core test suite */
         /*pcre2_set_match_limit(match_context, 5120000000);*/
@@ -730,10 +730,10 @@ U32
 PCRE2_matchempty(REGEXP *rx)
 
 U32
-matchlimit(REGEXP *rx, U32 value=0)
+matchlimit(REGEXP_NN *rx=NULL, U32 value=0)
 CODE:
-    if (items == 2)
-        croak("matchlimit setter nyi");
+    if (match_context && ((items == 1 && !rx) || (items == 2)))
+        pcre2_set_match_limit(match_context, (PCRE2_SIZE)value);
     RETVAL = PCRE2_matchlimit(rx);
     if (RETVAL == (U32)-1)
         XSRETURN_UNDEF;
